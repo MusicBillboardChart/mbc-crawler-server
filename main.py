@@ -1,15 +1,13 @@
-from typing import Union
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import db
 
-from fastapi import FastAPI
+cred = credentials.Certificate('./env/musicstreamingrank-firebase-adminsdk-umd95-da99b91f04.json')
+firebase_admin.initialize_app(cred,{
+    'databaseURL' : 'https://musicstreamingrank-default-rtdb.firebaseio.com/'
+})
 
-app = FastAPI()
+dir = db.reference()
+dir.update({'자동차':'기아'})
 
-
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
-
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
+print('데이터가 성공적으로 추가되었습니다.')
