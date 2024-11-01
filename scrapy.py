@@ -4,6 +4,9 @@ import os
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import db
+from dotenv import load_dotenv
+
+load_dotenv()
 
 cred = credentials.Certificate({
     "type": os.environ.get('type'),
@@ -83,4 +86,4 @@ def crawl(site_name):
     chart_list = soup.select(site_info["chart_list"])
     scrapy(chart_list, site_info, site_name)
 
-crawl("bugs")
+crawl("melon")
