@@ -5,6 +5,11 @@ import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import db
 from dotenv import load_dotenv
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+import time
+
 
 load_dotenv()
 
@@ -63,16 +68,43 @@ headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 }
 
-def scrapy(chart_list, site_info, site_name) :
+def scrapy(chart_list, site_info, site_name, site_link):
     global rank
     rank = 0
-    for rankNum, song in enumerate(chart_list[rank:100], 1):
+    driver = webdriver.Chrome()
+    time.sleep(3)
+    driver.get(site_link)
+    if site_name == "vibe":
+        try:
+            popup = driver.find_element(By.CLASS_NAME, "AdvertisingPopup_btn_close_3yEbw")
+            popup.click()
+        except:
+            print("팝업이 없거나 이미 닫혀있습니다.")
+        
+        time.sleep(3)
+        
+        songs = driver.find_elements(By.CSS_SELECTOR, "tbody > tr")
+        
+        for rankNum, song in enumerate(songs[:100], 1):
+            try:
+                title = song.find_element(By.CSS_SELECTOR, "div.title_badge_wrap > span").text.strip()
+                artist = song.find_element(By.CSS_SELECTOR, "div.artist_sub > span").text.strip()
+                rank = rankNum
+                dir = db.reference(site_name)
+                dir.update({rank: f"{title} - {artist}"})
+                print(f"{rank}. {title} - {artist}")
+            except Exception as e:
+                print(f"Error processing rank {rankNum}: {str(e)}")
+        
+    else:
+        for rankNum, song in enumerate(chart_list[rank:100], 1):
             title = song.select_one(site_info["title"]).text.strip()
             artist = song.select_one(site_info["artist"]).text.strip()
             rank = rankNum
             dir = db.reference(site_name)
             dir.update({rank: f"{title} - {artist}"})
             print(f"{rank}. {title} - {artist}")
+        driver.quit()
     return rank
 
 def crawl(site_name):
@@ -84,6 +116,6 @@ def crawl(site_name):
     res = requests.get(site_link, headers=headers)
     soup = BeautifulSoup(res.text, 'html.parser')
     chart_list = soup.select(site_info["chart_list"])
-    scrapy(chart_list, site_info, site_name)
+    scrapy(chart_list, site_info, site_name, site_link)
 
-crawl("melon")
+crawl("vibe")
