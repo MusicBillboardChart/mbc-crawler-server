@@ -37,35 +37,35 @@ urls = {
         "title" : ".wrap_song_info .rank01 a",
         "artist" : ".wrap_song_info .rank02 a"
     },
-    "youtubeMusic": { # 셀레니움 필요
-         "link":"https://charts.youtube.com/charts/TopSongs/kr/weekly",
-         "chart_list" : '/html/body/ytmc-v2-app/ytmc-detailed-page/div[2]/ytmc-chart-table-v2/div',
-         "title" : '//*[@id="entity-title"]',
-         "artist" : '//*[@id="artist-names"]'
-         },
+    "youtubeMusic": {
+        "link": "https://charts.youtube.com/charts/TopSongs/kr/weekly",
+        "chart_list": "ytmc-v2-app ytmc-detailed-page div:nth-child(2) ytmc-chart-table-v2 div",
+        "title": "div#entity-title",
+        "artist": "div#artist-names"
+    },
     "genie": { # 스크래핑은 되지만 50위 까지만 긁어와짐 (결론 : 셀레니움 필요)
-              "link":"https://www.genie.co.kr/chart/top200?ditc=D&ymd=20241026&hh=21&rtm=Y&pg=1",
-              "chart_list" : "tbody > tr",
-              "title" : ".info > .title",
-              "artist" : ".info > .artist"
+        "link":"https://www.genie.co.kr/chart/top200?ditc=D&ymd=20241026&hh=21&rtm=Y&pg=1",
+        "chart_list" : '#body-content > div.newest-list > div > table > tbody > tr',
+        "title" : '#body-content > div.newest-list > div > table > tbody > tr > td.info > a.title.ellipsis',
+        "artist" : '#body-content > div.newest-list > div > table > tbody > tr > td.info > a.artist.ellipsis'
     },
     "vibe" : { # 셀레니움 필요
       "link" :"https://vibe.naver.com/chart/total",
-      "chart_list" : "tbody > tr",
-      "title": "div.title_badge_wrap > span",
-      "artist": "div.artist_sub > span"
+      "chart_list" : '#content > div.track_section > div:nth-child(2) > div > table > tbody > tr',
+      "title": '#content > div.track_section > div:nth-child(2) > div > table > tbody > tr > td.song > div.title_badge_wrap > span',
+      "artist": 'div.artist_sub > span'
     },
     "bugs" : {
       "link" :"https://music.bugs.co.kr/chart",
-      "chart_list" : 'tbody > tr',
-      "title": "p.title > a",
-      "artist": "p.artist > a"
+      "chart_list" : '#CHARTrealtime > table > tbody > tr',
+      "title": 'p.title > a',
+      "artist": 'p.artist > a'
     },
     "flo": { # 셀레니움 필요
         "link":"https://www.music-flo.com/browse",
-        "chart_list" : '/html/body/div[2]/div[1]/section/div/div[2]/div[2]/table',
-        "title": '//*[@id="browseRank"]/div[2]/table/tbody/tr[1]/td[4]/div/div[2]/button/p/span/strong',
-        "artist": '//*[@id="browseRank"]/div[2]/table/tbody/tr[1]/td[5]/p/span[1]'
+        "chart_list" : '#browseRank > div.chart_lst > table > tbody > tr',
+        "title": '#browseRank > div.chart_lst > table > tbody > tr > td.info > div > div.txt_area > button',
+        "artist": '#browseRank > div.chart_lst > table > tbody > tr > td.artist > p > span.artist_link_w'
     } 
 }
 
@@ -83,11 +83,11 @@ def vibeScrapy(driver) :
         
 def floClickButton(driver) :
     try:
-        readMore = driver.find_element(By.XPATH, '//*[@id="browseRank"]/div[2]/div/button')
+        readMore = driver.find_element(By.CSS_SELECTOR, '#browseRank > div.chart_lst > div > button')
         readMore.click()
         print("더보기 버튼 클릭")
     except:
-        print("팝업이 없거나 이미 닫혀있습니다.")
+        print("더보기 버튼이 없습니다...")
         return
     
 def scrapy(chart_list, site_info, site_name, site_link):
@@ -103,12 +103,12 @@ def scrapy(chart_list, site_info, site_name, site_link):
         floClickButton(driver)
     time.sleep(3)
     
-    songs = driver.find_elements(By.XPATH, chart_list)
+    songs = driver.find_elements(By.CSS_SELECTOR, chart_list)
 
     for rankNum, song in enumerate(songs[:100], 1):
         try:
-            title = song.find_element(By.XPATH, site_info["title"]).text.strip()
-            artist = song.find_element(By.XPATH, site_info["artist"]).text.strip()
+            title = song.find_element(By.CSS_SELECTOR, site_info["title"]).text.strip()
+            artist = song.find_element(By.CSS_SELECTOR, site_info["artist"]).text.strip()
             rank = rankNum
             # dir = db.reference(site_name)
             # dir.update({rank: f"{title} - {artist}"})
@@ -128,4 +128,4 @@ def crawl(site_name):
     chart_list = site_info["chart_list"]
     scrapy(chart_list, site_info, site_name, site_link)
 
-crawl("flo")
+crawl("youtubeMusic")
