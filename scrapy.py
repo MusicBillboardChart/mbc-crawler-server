@@ -39,9 +39,9 @@ urls = {
     },
     "youtubeMusic": { # 셀레니움 필요
          "link":"https://charts.youtube.com/charts/TopSongs/kr/weekly",
-         "chart_list" : "ytmc-v2-app > ytmc-detailed-page > div:nth-of-type(2) > ytmc-chart-table-v2 > div > ytmc-entry-row",
-         "title" : "ytmc-v2-app > ytmc-detailed-page > div:nth-of-type(2) > ytmc-chart-table-v2 > div > ytmc-entry-row > div > div > div:nth-of-type(2) > div > div:nth-of-type(1)",
-         "artist" : "ytmc-v2-app > ytmc-detailed-page > div:nth-of-type(2) > ytmc-chart-table-v2 > div > ytmc-entry-row > div > div > div:nth-of-type(1) > span"
+         "chart_list" : '/html/body/ytmc-v2-app/ytmc-detailed-page/div[2]/ytmc-chart-table-v2/div',
+         "title" : '//*[@id="entity-title"]',
+         "artist" : '//*[@id="artist-names"]'
          },
     "genie": { # 스크래핑은 되지만 50위 까지만 긁어와짐 (결론 : 셀레니움 필요)
               "link":"https://www.genie.co.kr/chart/top200?ditc=D&ymd=20241026&hh=21&rtm=Y&pg=1",
@@ -57,54 +57,66 @@ urls = {
     },
     "bugs" : {
       "link" :"https://music.bugs.co.kr/chart",
-      "chart_list" : "tbody > tr",
+      "chart_list" : 'tbody > tr',
       "title": "p.title > a",
       "artist": "p.artist > a"
     },
-    "flo": "https://www.music-flo.com" # 셀레니움 필요
+    "flo": { # 셀레니움 필요
+        "link":"https://www.music-flo.com/browse",
+        "chart_list" : '/html/body/div[2]/div[1]/section/div/div[2]/div[2]/table',
+        "title": '//*[@id="browseRank"]/div[2]/table/tbody/tr[1]/td[4]/div/div[2]/button/p/span/strong',
+        "artist": '//*[@id="browseRank"]/div[2]/table/tbody/tr[1]/td[5]/p/span[1]'
+    } 
 }
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 }
 
+def vibeScrapy(driver) :
+    try:
+        popup = driver.find_element(By.CLASS_NAME, "AdvertisingPopup_btn_close_3yEbw")
+        popup.click()
+    except:
+        print("팝업이 없거나 이미 닫혀있습니다.")
+        return
+        
+def floClickButton(driver) :
+    try:
+        readMore = driver.find_element(By.XPATH, '//*[@id="browseRank"]/div[2]/div/button')
+        readMore.click()
+        print("더보기 버튼 클릭")
+    except:
+        print("팝업이 없거나 이미 닫혀있습니다.")
+        return
+    
 def scrapy(chart_list, site_info, site_name, site_link):
     global rank
     rank = 0
     driver = webdriver.Chrome()
-    time.sleep(3)
     driver.get(site_link)
+    
     if site_name == "vibe":
+        vibeScrapy(driver)
+    
+    if site_name == "flo" : 
+        floClickButton(driver)
+    time.sleep(3)
+    
+    songs = driver.find_elements(By.XPATH, chart_list)
+
+    for rankNum, song in enumerate(songs[:100], 1):
         try:
-            popup = driver.find_element(By.CLASS_NAME, "AdvertisingPopup_btn_close_3yEbw")
-            popup.click()
-        except:
-            print("팝업이 없거나 이미 닫혀있습니다.")
-        
-        time.sleep(3)
-        
-        songs = driver.find_elements(By.CSS_SELECTOR, "tbody > tr")
-        
-        for rankNum, song in enumerate(songs[:100], 1):
-            try:
-                title = song.find_element(By.CSS_SELECTOR, "div.title_badge_wrap > span").text.strip()
-                artist = song.find_element(By.CSS_SELECTOR, "div.artist_sub > span").text.strip()
-                rank = rankNum
-                dir = db.reference(site_name)
-                dir.update({rank: f"{title} - {artist}"})
-                print(f"{rank}. {title} - {artist}")
-            except Exception as e:
-                print(f"Error processing rank {rankNum}: {str(e)}")
-        
-    else:
-        for rankNum, song in enumerate(chart_list[rank:100], 1):
-            title = song.select_one(site_info["title"]).text.strip()
-            artist = song.select_one(site_info["artist"]).text.strip()
+            title = song.find_element(By.XPATH, site_info["title"]).text.strip()
+            artist = song.find_element(By.XPATH, site_info["artist"]).text.strip()
             rank = rankNum
-            dir = db.reference(site_name)
-            dir.update({rank: f"{title} - {artist}"})
+            # dir = db.reference(site_name)
+            # dir.update({rank: f"{title} - {artist}"})
             print(f"{rank}. {title} - {artist}")
-        driver.quit()
+        except Exception as e:
+            print(f"Error at rank {rankNum}: {str(e)}")
+    
+    driver.quit()
     return rank
 
 def crawl(site_name):
@@ -113,9 +125,7 @@ def crawl(site_name):
         return
     site_info = urls[site_name]
     site_link = site_info["link"]
-    res = requests.get(site_link, headers=headers)
-    soup = BeautifulSoup(res.text, 'html.parser')
-    chart_list = soup.select(site_info["chart_list"])
+    chart_list = site_info["chart_list"]
     scrapy(chart_list, site_info, site_name, site_link)
 
-crawl("vibe")
+crawl("flo")
