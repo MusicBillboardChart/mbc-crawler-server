@@ -1,5 +1,3 @@
-import requests
-from bs4 import BeautifulSoup
 import os 
 import firebase_admin
 from firebase_admin import credentials
@@ -7,7 +5,6 @@ from firebase_admin import db
 from dotenv import load_dotenv
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 import time
 
 
@@ -69,10 +66,6 @@ urls = {
     } 
 }
 
-headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-}
-
 def vibeScrapy(driver) :
     try:
         popup = driver.find_element(By.CLASS_NAME, "AdvertisingPopup_btn_close_3yEbw")
@@ -89,33 +82,52 @@ def floClickButton(driver) :
     except:
         print("더보기 버튼이 없습니다...")
         return
+
+def genieTopAll(chart_list, site_info, site_name) :
+    try:
+        print("더보기 버튼 클릭")
+        site_link = 'https://www.genie.co.kr/chart/top200?ditc=D&ymd=20241106&hh=10&rtm=Y&pg=2'
+        page = 2
+        scrapy(chart_list, site_info, site_name, site_link, page)
+    except:
+        print("더보기 버튼이 없습니다...")
+        return
+
+global rank, page
+rank = 0
+page = 1
     
-def scrapy(chart_list, site_info, site_name, site_link):
-    global rank
-    rank = 0
-    driver = webdriver.Chrome()
+def scrapy(chart_list, site_info, site_name, site_link, page):
+    option = webdriver.ChromeOptions()
+    headers = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    option.add_argument(f'user-agent={headers}')
+    option.add_argument("--headless=new")
+    driver = webdriver.Chrome(options=option)
     driver.get(site_link)
-    
     if site_name == "vibe":
         vibeScrapy(driver)
     
     if site_name == "flo" : 
         floClickButton(driver)
+
     time.sleep(3)
     
     songs = driver.find_elements(By.CSS_SELECTOR, chart_list)
-
     for rankNum, song in enumerate(songs[:100], 1):
         try:
             title = song.find_element(By.CSS_SELECTOR, site_info["title"]).text.strip()
             artist = song.find_element(By.CSS_SELECTOR, site_info["artist"]).text.strip()
             rank = rankNum
-            # dir = db.reference(site_name)
-            # dir.update({rank: f"{title} - {artist}"})
+            if page == 2 :
+                rank = rank + 50
+            dir = db.reference(site_name)
+            dir.update({rank: f"{title} - {artist}"})
             print(f"{rank}. {title} - {artist}")
+            if rank == 50 and site_name == "genie":
+                driver.quit()
+                genieTopAll(chart_list, site_info, site_name)
         except Exception as e:
             print(f"Error at rank {rankNum}: {str(e)}")
-    
     driver.quit()
     return rank
 
@@ -126,6 +138,10 @@ def crawl(site_name):
     site_info = urls[site_name]
     site_link = site_info["link"]
     chart_list = site_info["chart_list"]
-    scrapy(chart_list, site_info, site_name, site_link)
+    page = 1
+    scrapy(chart_list, site_info, site_name, site_link, page)
 
-crawl("youtubeMusic")
+crawl("genie")
+crawl("bugs")
+crawl("melon")
+crawl("vibe")
