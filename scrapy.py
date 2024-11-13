@@ -66,22 +66,12 @@ urls = {
     } 
 }
 
-def vibeScrapy(driver) :
+def clickButtonElement(driver, cssSelector) :
     try:
-        popup = driver.find_element(By.CLASS_NAME, "AdvertisingPopup_btn_close_3yEbw")
+        popup = driver.find_element(By.CSS_SELECTOR, cssSelector)
         popup.click()
     except:
         print("팝업이 없거나 이미 닫혀있습니다.")
-        return
-        
-def floClickButton(driver) :
-    try:
-        readMore = driver.find_element(By.CSS_SELECTOR, '#browseRank > div.chart_lst > div > button')
-        readMore.click()
-        print("더보기 버튼 클릭")
-    except:
-        print("더보기 버튼이 없습니다...")
-        return
 
 def genieTopAll(chart_list, site_info, site_name) :
     try:
@@ -93,8 +83,7 @@ def genieTopAll(chart_list, site_info, site_name) :
         print("더보기 버튼이 없습니다...")
         return
 
-global rank, page
-rank = 0
+global page
 page = 1
     
 def scrapy(chart_list, site_info, site_name, site_link, page):
@@ -105,10 +94,10 @@ def scrapy(chart_list, site_info, site_name, site_link, page):
     driver = webdriver.Chrome(options=option)
     driver.get(site_link)
     if site_name == "vibe":
-        vibeScrapy(driver)
+        clickButtonElement(driver, ".AdvertisingPopup_btn_close_3yEbw")
     
     if site_name == "flo" : 
-        floClickButton(driver)
+        clickButtonElement(driver, "#browseRank > div.chart_lst > div > button")
 
     time.sleep(3)
     
