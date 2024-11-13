@@ -30,45 +30,45 @@ firebase_admin.initialize_app(cred, {
 urls = {
     "melon": {
         "link" : "https://www.melon.com/chart/index.htm",
-        "chart_list" : "tbody > tr",
+        "chart_list" : '//*[@id="frm"]/div/table/tbody/tr',
         "title" : ".wrap_song_info .rank01 a",
-        "artist" : ".wrap_song_info .rank02 a"
+        "artist" : "td > div > div > div.ellipsis.rank02"
     },
     "youtubeMusic": {
         "link": "https://charts.youtube.com/charts/TopSongs/kr/weekly",
-        "chart_list": "ytmc-v2-app ytmc-detailed-page div:nth-child(2) ytmc-chart-table-v2 div",
-        "title": "div#entity-title",
-        "artist": "div#artist-names"
+        "chart_list": "/html/body/ytmc-v2-app/ytmc-detailed-page/div[2]/ytmc-chart-table-v2/div/ytmc-entry-row/div/div",
+        "title": "#entity-title",
+        "artist": "#artist-names"
     },
-    "genie": { # 스크래핑은 되지만 50위 까지만 긁어와짐 (결론 : 셀레니움 필요)
+    "youtubeMusicGlobal": {
+        "link": "https://charts.youtube.com/charts/TopSongs/global/weekly",
+        "chart_list": "/html/body/ytmc-v2-app/ytmc-detailed-page/div[2]/ytmc-chart-table-v2/div/ytmc-entry-row/div/div",
+        "title": "#entity-title",
+        "artist": "#artist-names"
+    },
+    "genie": {
         "link":"https://www.genie.co.kr/chart/top200?ditc=D&ymd=20241026&hh=21&rtm=Y&pg=1",
-        "chart_list" : '#body-content > div.newest-list > div > table > tbody > tr',
+        "chart_list" : '//*[@id="body-content"]/div[6]/div/table/tbody/tr',
         "title" : '#body-content > div.newest-list > div > table > tbody > tr > td.info > a.title.ellipsis',
         "artist" : '#body-content > div.newest-list > div > table > tbody > tr > td.info > a.artist.ellipsis'
     },
-    "vibe" : { # 셀레니움 필요
+    "vibe" : {
       "link" :"https://vibe.naver.com/chart/total",
-      "chart_list" : '#content > div.track_section > div:nth-child(2) > div > table > tbody > tr',
+      "chart_list" : '//*[@id="content"]/div[4]/div[2]/div/table/tbody/tr',
       "title": '#content > div.track_section > div:nth-child(2) > div > table > tbody > tr > td.song > div.title_badge_wrap > span',
       "artist": 'div.artist_sub > span'
     },
     "bugs" : {
       "link" :"https://music.bugs.co.kr/chart",
-      "chart_list" : '#CHARTrealtime > table > tbody > tr',
+      "chart_list" : '//*[@id="CHARTrealtime"]/table/tbody/tr',
       "title": 'p.title > a',
       "artist": 'p.artist > a'
     },
-    "flo": { # 셀레니움 필요
-        "link":"https://www.music-flo.com/browse",
-        "chart_list" : '#browseRank > div.chart_lst > table > tbody > tr',
-        "title": '#browseRank > div.chart_lst > table > tbody > tr > td.info > div > div.txt_area > button',
-        "artist": '#browseRank > div.chart_lst > table > tbody > tr > td.artist > p > span.artist_link_w'
-    } 
 }
 
-def clickButtonElement(driver, cssSelector) :
+def clickButton(driver, cssSelector) :
     try:
-        popup = driver.find_element(By.CSS_SELECTOR, cssSelector)
+        popup = driver.find_element(By.XPATH, cssSelector)
         popup.click()
     except:
         print("팝업이 없거나 이미 닫혀있습니다.")
@@ -83,7 +83,8 @@ def genieTopAll(chart_list, site_info, site_name) :
         print("더보기 버튼이 없습니다...")
         return
 
-global page
+global rank, page
+rank = 0
 page = 1
     
 def scrapy(chart_list, site_info, site_name, site_link, page):
@@ -94,21 +95,17 @@ def scrapy(chart_list, site_info, site_name, site_link, page):
     driver = webdriver.Chrome(options=option)
     driver.get(site_link)
     if site_name == "vibe":
-        clickButtonElement(driver, ".AdvertisingPopup_btn_close_3yEbw")
-    
-    if site_name == "flo" : 
-        clickButtonElement(driver, "#browseRank > div.chart_lst > div > button")
-
+        clickButton(driver,'//*[@id="app"]/div[2]/div/div/a[2]')
     time.sleep(3)
     
-    songs = driver.find_elements(By.CSS_SELECTOR, chart_list)
+    songs = driver.find_elements(By.XPATH, chart_list)
     for rankNum, song in enumerate(songs[:100], 1):
         try:
             title = song.find_element(By.CSS_SELECTOR, site_info["title"]).text.strip()
             artist = song.find_element(By.CSS_SELECTOR, site_info["artist"]).text.strip()
             rank = rankNum
             if page == 2 :
-                rank = rank + 50
+                rank = rank + 50           
             dir = db.reference(site_name)
             dir.update({rank: f"{title} - {artist}"})
             print(f"{rank}. {title} - {artist}")
@@ -118,7 +115,6 @@ def scrapy(chart_list, site_info, site_name, site_link, page):
         except Exception as e:
             print(f"Error at rank {rankNum}: {str(e)}")
     driver.quit()
-    return rank
 
 def crawl(site_name):
     if not isinstance(urls[site_name], dict):
@@ -130,7 +126,9 @@ def crawl(site_name):
     page = 1
     scrapy(chart_list, site_info, site_name, site_link, page)
 
-crawl("genie")
-crawl("bugs")
-crawl("melon")
-crawl("vibe")
+# crawl("youtubeMusic")
+crawl("youtubeMusicGlobal")
+# crawl("bugs")
+# crawl("genie")
+# crawl("melon")
+# crawl("vibe")
