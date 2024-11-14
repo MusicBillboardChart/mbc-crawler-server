@@ -126,9 +126,9 @@ def crawl(site_name):
     page = 1
     scrapy(chart_list, site_info, site_name, site_link, page)
 
-# crawl("youtubeMusic")
+crawl("youtubeMusic")
 crawl("youtubeMusicGlobal")
-# crawl("bugs")
-# crawl("genie")
-# crawl("melon")
-# crawl("vibe")
+crawl("bugs")
+crawl("genie")
+crawl("melon")
+crawl("vibe")
